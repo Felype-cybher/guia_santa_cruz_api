@@ -1,3 +1,4 @@
+// src/config/db.js
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -9,6 +10,10 @@ if (!connectionString) {
 
 const pool = new Pool({
   connectionString: connectionString,
+  // Linha adicionada para compatibilidade com o Render
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 module.exports = {
