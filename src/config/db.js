@@ -1,15 +1,16 @@
-const mysql = require('mysql2');
-
+const { Pool } = require('pg');
 require('dotenv').config();
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL não foi definida no seu arquivo .env ou nas variáveis de ambiente.');
+}
+
+const pool = new Pool({
+  connectionString: connectionString,
 });
 
-module.exports = pool.promise();
+module.exports = {
+  query: (text, params) => pool.query(text, params),
+};
