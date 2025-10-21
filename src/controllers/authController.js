@@ -1,3 +1,4 @@
+// src/controllers/authController.js
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -14,20 +15,25 @@ exports.register = async (req, res) => {
 
     const senha_hash = await bcrypt.hash(senha, saltRounds);
 
-    const [result] = await db.query(
-      'INSERT INTO usuarios (nome, email, senha_hash) VALUES (?, ?, ?)',
+    const result = await db.query(
+      'INSERT INTO usuarios (nome, email, senha_hash) VALUES ($1, $2, $3) RETURNING id',
       [nome, email, senha_hash]
     );
 
+    const userId = result.rows[0].id;
+
     res.status(201).json({ 
-      message: 'Usuário cadastrado com sucesso!', 
-      userId: result.insertId 
+        message: 'Usuário cadastrado com sucesso!', 
+        userId: userId 
     });
+
   } catch (error) {
-    console.error('Erro no registro:', error);
-    if (error.code === 'ER_DUP_ENTRY') {
+    console.error('Erro ao cadastrar usuário:', error);
+
+    if (error.code === '23505') { // Código de erro do PostgreSQL para entrada duplicada
       return res.status(409).json({ message: 'Este email já está cadastrado.' });
     }
+
     res.status(500).json({ message: 'Erro interno no servidor.' });
   }
 };
@@ -40,13 +46,16 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Email e senha são obrigatórios.' });
     }
 
-    const [rows] = await db.query('SELECT * FROM usuarios WHERE email = ?', [email]);
+    const result = await db.query(
+      'SELECT * FROM usuarios WHERE email = $1',
+      [email]
+    );
 
-    if (rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(401).json({ message: 'Email ou senha inválidos.' });
     }
 
-    const usuario = rows[0];
+    const usuario = result.rows[0];
     const senhaCorreta = await bcrypt.compare(senha, usuario.senha_hash);
 
     if (!senhaCorreta) {
@@ -69,8 +78,9 @@ exports.login = async (req, res) => {
         tipo: usuario.tipo
       }
     });
+
   } catch (error) {
-    console.error('Erro no login:', error);
+    console.error('Erro ao fazer login:', error);
     res.status(500).json({ message: 'Erro interno no servidor.' });
   }
 };
