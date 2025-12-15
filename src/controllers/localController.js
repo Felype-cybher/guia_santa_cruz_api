@@ -98,3 +98,51 @@ exports.createLocal = async (req, res) => {
     res.status(500).json({ message: 'Erro interno no servidor ao criar local.' });
   }
 };
+
+// Lista locais por usuário (retorna colunas essenciais)
+exports.getLocaisPorUsuario = async (req, res) => {
+  try {
+    const { usuario_id } = req.params;
+
+    if (!usuario_id) {
+      return res.status(400).json({ message: 'Parametro usuario_id é obrigatório.' });
+    }
+
+    const query = `
+      SELECT id, nome, endereco, status_validacao, foto
+      FROM locais
+      WHERE usuario_id = $1
+      ORDER BY id DESC
+    `;
+
+    const { rows } = await db.query(query, [usuario_id]);
+
+    return res.status(200).json(rows);
+  } catch (error) {
+    console.error('Erro ao listar locais do usuário:', error);
+    return res.status(500).json({ message: 'Erro interno no servidor ao listar locais do usuário.' });
+  }
+};
+
+// Exclui um local pelo id
+exports.deleteLocal = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: 'Parametro id é obrigatório.' });
+    }
+
+    const query = 'DELETE FROM locais WHERE id = $1 RETURNING id';
+    const { rowCount, rows } = await db.query(query, [id]);
+
+    if (rowCount === 0) {
+      return res.status(404).json({ message: 'Local não encontrado.' });
+    }
+
+    return res.status(200).json({ message: `Local ${rows[0].id} excluído com sucesso.` });
+  } catch (error) {
+    console.error('Erro ao excluir local:', error);
+    return res.status(500).json({ message: 'Erro interno no servidor ao excluir local.' });
+  }
+};
