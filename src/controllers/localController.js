@@ -13,12 +13,13 @@ exports.getAllLocais = async (req, res) => {
         l.latitude,
         l.longitude,
         l.foto,
+        l.status_validacao,
         c.nome AS categoria_nome
       FROM locais AS l
       LEFT JOIN categorias AS c ON l.categoria_id = c.id
       WHERE l.status_validacao = 'aprovado'
     `;
-    // Adicionei l.foto no SELECT acima pra imagem aparecer quando buscarem os locais
+    // Adicionei l.status_validacao no SELECT para retornar o status real do local
 
     console.log('Executando query no banco...');
     const result = await db.query(query);
@@ -143,6 +144,7 @@ exports.getLocalById = async (req, res) => {
         l.latitude,
         l.longitude,
         l.foto,
+        l.status_validacao,
         c.nome AS categoria_nome
       FROM locais AS l
       LEFT JOIN categorias AS c ON l.categoria_id = c.id
