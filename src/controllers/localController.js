@@ -3,6 +3,37 @@ const db = require('../config/db');
 exports.getAllLocais = async (req, res) => {
   console.log('Recebida requisição GET /api/locais');
   try {
+    const { status } = req.query;
+    
+    // Determinar o filtro de status baseado no query parameter
+    let whereClause = "WHERE l.status_validacao = 'aprovado'"; // Padrão: apenas aprovados
+    
+    if (status) {
+      const statusLower = String(status).toLowerCase().trim();
+      
+      if (statusLower === 'todos') {
+        // Sem filtro de status - retorna todos
+        whereClause = '';
+        console.log('Filtro: Todos os locais (sem filtro de status)');
+      } else if (statusLower === 'pendente') {
+        whereClause = "WHERE l.status_validacao = 'pendente'";
+        console.log('Filtro: Apenas locais pendentes');
+      } else if (statusLower === 'aprovado') {
+        whereClause = "WHERE l.status_validacao = 'aprovado'";
+        console.log('Filtro: Apenas locais aprovados');
+      } else if (statusLower === 'rejeitado') {
+        whereClause = "WHERE l.status_validacao = 'rejeitado'";
+        console.log('Filtro: Apenas locais rejeitados');
+      } else {
+        // Status inválido - retorna erro
+        return res.status(400).json({ 
+          message: `Status inválido. Valores permitidos: aprovado, pendente, rejeitado, todos` 
+        });
+      }
+    } else {
+      console.log('Filtro: Padrão (apenas aprovados)');
+    }
+
     const query = `
       SELECT
         l.id,
@@ -17,9 +48,8 @@ exports.getAllLocais = async (req, res) => {
         c.nome AS categoria_nome
       FROM locais AS l
       LEFT JOIN categorias AS c ON l.categoria_id = c.id
-      WHERE l.status_validacao = 'aprovado'
+      ${whereClause}
     `;
-    // Adicionei l.status_validacao no SELECT para retornar o status real do local
 
     console.log('Executando query no banco...');
     const result = await db.query(query);
