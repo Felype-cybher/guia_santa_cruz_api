@@ -241,6 +241,90 @@ exports.atualizarStatus = async (req, res) => {
   }
 };
 
+// Atualiza um local com verificação de propriedade
+exports.atualizarLocal = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      nome,
+      endereco,
+      telefone,
+      sobre,
+      latitude,
+      longitude,
+      categorias_id,
+      usuario_id,
+      foto
+    } = req.body;
+
+    // Validações obrigatórias
+    if (!id) {
+      return res.status(400).json({ message: 'Parametro id é obrigatório.' });
+    }
+
+    if (!usuario_id) {
+      return res.status(400).json({ message: 'Campo usuario_id é obrigatório no body.' });
+    }
+
+    if (!nome || !latitude || !longitude || !categorias_id) {
+      return res.status(400).json({
+        message: 'Erro: nome, latitude, longitude e categorias_id são obrigatórios.'
+      });
+    }
+
+    // Query com verificação de propriedade: só atualiza se o usuario_id corresponder
+    const query = `
+      UPDATE locais 
+      SET 
+        nome = $1,
+        endereco = $2,
+        telefone = $3,
+        sobre = $4,
+        latitude = $5,
+        longitude = $6,
+        categoria_id = $7,
+        status_validacao = 'pendente',
+        foto = $8
+      WHERE id = $9 AND usuario_id = $10
+      RETURNING *
+    `;
+
+    const values = [
+      nome,
+      endereco,
+      telefone,
+      sobre,
+      latitude,
+      longitude,
+      categorias_id,
+      foto || null,
+      id,
+      usuario_id
+    ];
+
+    console.log(`Tentativa de atualizar local ${id} pelo usuário ${usuario_id}`);
+    const { rowCount, rows } = await db.query(query, values);
+
+    // Se nenhuma linha foi afetada, significa que o local não existe ou não pertence ao usuário
+    if (rowCount === 0) {
+      console.log(`Acesso negado: Local ${id} não encontrado ou não pertence ao usuário ${usuario_id}`);
+      return res.status(403).json({ 
+        message: 'Operação não permitida. Você só pode editar locais criados por você.' 
+      });
+    }
+
+    console.log(`Local ${id} atualizado com sucesso. Status resetado para 'pendente'.`);
+    return res.status(200).json({
+      message: 'Local atualizado com sucesso. Aguardando re-aprovação do administrador.',
+      local: rows[0]
+    });
+
+  } catch (error) {
+    console.error('Erro ao atualizar local:', error);
+    return res.status(500).json({ message: 'Erro interno no servidor ao atualizar local.' });
+  }
+};
+
 // Exclui um local pelo id
 exports.deleteLocal = async (req, res) => {
   try {

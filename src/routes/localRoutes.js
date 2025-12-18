@@ -15,6 +15,9 @@ router.get('/:id', localController.getLocalById);
 // Atualizar status de validação de um local
 router.patch('/:id/status', localController.atualizarStatus);
 
+// Atualizar um local (com verificação de propriedade)
+router.put('/:id', localController.atualizarLocal);
+
 // Excluir local por id
 router.delete('/:id', localController.deleteLocal);
 
