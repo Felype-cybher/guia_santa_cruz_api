@@ -12,6 +12,9 @@ router.get('/usuario/:usuario_id', localController.getLocaisPorUsuario);
 // Buscar local por id
 router.get('/:id', localController.getLocalById);
 
+// Atualizar status de validação de um local
+router.patch('/:id/status', localController.atualizarStatus);
+
 // Excluir local por id
 router.delete('/:id', localController.deleteLocal);
 

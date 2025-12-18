@@ -164,6 +164,52 @@ exports.getLocalById = async (req, res) => {
   }
 };
 
+// Atualiza o status de validação de um local
+exports.atualizarStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ message: 'Parametro id é obrigatório.' });
+    }
+
+    if (!status) {
+      return res.status(400).json({ message: 'Campo status é obrigatório no body.' });
+    }
+
+    // Validar se o status é um valor permitido
+    const statusValidos = ['aprovado', 'pendente', 'rejeitado'];
+    if (!statusValidos.includes(String(status).toLowerCase())) {
+      return res.status(400).json({ 
+        message: `Status inválido. Valores permitidos: ${statusValidos.join(', ')}` 
+      });
+    }
+
+    const query = `
+      UPDATE locais 
+      SET status_validacao = $1 
+      WHERE id = $2 
+      RETURNING id, nome, status_validacao
+    `;
+
+    const { rowCount, rows } = await db.query(query, [String(status).toLowerCase(), id]);
+
+    if (rowCount === 0) {
+      return res.status(404).json({ message: 'Local não encontrado.' });
+    }
+
+    console.log(`Status do local ${id} atualizado para: ${status}`);
+    return res.status(200).json({ 
+      message: 'Status atualizado com sucesso.',
+      local: rows[0]
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar status do local:', error);
+    return res.status(500).json({ message: 'Erro interno no servidor ao atualizar status.' });
+  }
+};
+
 // Exclui um local pelo id
 exports.deleteLocal = async (req, res) => {
   try {
