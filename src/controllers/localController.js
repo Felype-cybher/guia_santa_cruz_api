@@ -76,7 +76,6 @@ exports.createLocal = async (req, res) => {
       sobre,
       latitude,
       longitude,
-      status_validacao,
       usuario_id,
       categorias_id,
       foto // <--- AGORA PEGAMOS A FOTO AQUI (Base64)
@@ -89,7 +88,9 @@ exports.createLocal = async (req, res) => {
       });
     }
 
-    const status = status_validacao || 'pendente';
+    // IMPORTANTE: Força o status para 'pendente' - usuários não podem se auto-aprovar
+    const status = 'pendente';
+    console.log("Status forçado para 'pendente' - novo local aguardando aprovação do admin");
 
     // Query atualizada para incluir a coluna 'foto'
     const query = `
