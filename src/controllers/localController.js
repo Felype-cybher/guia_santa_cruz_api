@@ -124,6 +124,44 @@ exports.getLocaisPorUsuario = async (req, res) => {
   }
 };
 
+// Busca um local pelo id
+exports.getLocalById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: 'Parametro id é obrigatório.' });
+    }
+
+    const query = `
+      SELECT
+        l.id,
+        l.nome,
+        l.endereco,
+        l.telefone,
+        l.sobre,
+        l.latitude,
+        l.longitude,
+        l.foto,
+        c.nome AS categoria_nome
+      FROM locais AS l
+      LEFT JOIN categorias AS c ON l.categoria_id = c.id
+      WHERE l.id = $1
+    `;
+
+    const { rows } = await db.query(query, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Local não encontrado.' });
+    }
+
+    return res.status(200).json(rows[0]);
+  } catch (error) {
+    console.error('Erro ao buscar local por id:', error);
+    return res.status(500).json({ message: 'Erro interno no servidor ao buscar local.' });
+  }
+};
+
 // Exclui um local pelo id
 exports.deleteLocal = async (req, res) => {
   try {

@@ -9,6 +9,9 @@ router.post('/', localController.createLocal);
 // Listar locais por usuário
 router.get('/usuario/:usuario_id', localController.getLocaisPorUsuario);
 
+// Buscar local por id
+router.get('/:id', localController.getLocalById);
+
 // Excluir local por id
 router.delete('/:id', localController.deleteLocal);
 
