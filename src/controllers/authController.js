@@ -1,8 +1,8 @@
 const db = require('../config/db');
-const bcrypt = require('bcryptjs'); // ou 'bcrypt', dependendo do que vc instalou
+const bcrypt = require('bcryptjs'); // ou 'bcrypt'
 const jwt = require('jsonwebtoken');
 
-// Registrar Usuário
+// Função de Registrar (Nome: registrar)
 exports.registrar = async (req, res) => {
     const { nome, email, password } = req.body;
 
@@ -17,7 +17,7 @@ exports.registrar = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // 3. Insere no Banco (Sintaxe POSTGRESQL)
+        // 3. Insere no Banco (CORREÇÃO: coluna 'senha' em vez de 'senha_hash')
         const query = `
             INSERT INTO usuarios (nome, email, senha)
             VALUES ($1, $2, $3)
@@ -34,7 +34,7 @@ exports.registrar = async (req, res) => {
     }
 };
 
-// Login
+// Função de Login (Nome: login)
 exports.login = async (req, res) => {
     const { email, password } = req.body;
 
@@ -48,7 +48,7 @@ exports.login = async (req, res) => {
 
         const user = result.rows[0];
 
-        // 2. Compara a senha enviada com a senha do banco
+        // 2. Compara a senha (CORREÇÃO: user.senha em vez de user.senha_hash)
         const isMatch = await bcrypt.compare(password, user.senha);
 
         if (!isMatch) {
