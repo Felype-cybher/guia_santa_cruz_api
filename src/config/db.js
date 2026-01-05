@@ -1,21 +1,15 @@
-// src/config/db.js
-const { Pool } = require('pg');
 require('dotenv').config();
+const { Pool } = require('pg');
 
-const connectionString = process.env.DATABASE_URL;
-
-if (!connectionString) {
-  throw new Error('DATABASE_URL não foi definida no seu arquivo .env ou nas variáveis de ambiente.');
-}
-
+// Cria a conexão (Pool) usando a URL do Neon
 const pool = new Pool({
-  connectionString: connectionString,
-  // Linha adicionada para compatibilidade com o Render
-  ssl: {
-    rejectUnauthorized: false
-  }
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false // Necessário para conectar no Neon/Render
+    }
 });
 
+// Exporta um facilitador para rodar as queries
 module.exports = {
-  query: (text, params) => pool.query(text, params),
+    query: (text, params) => pool.query(text, params),
 };
