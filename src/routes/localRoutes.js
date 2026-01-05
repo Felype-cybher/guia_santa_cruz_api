@@ -1,24 +1,19 @@
 const express = require('express');
 const router = express.Router();
+// Importa o Controller (que tem as funções lógicas)
 const localController = require('../controllers/localController');
+// Importa o Middleware (que acabamos de criar)
+const authMiddleware = require('../middleware/authMiddleware');
 
+// --- Rotas Públicas (Qualquer um vê) ---
 router.get('/', localController.getAllLocais);
-
-router.post('/', localController.createLocal);
-
-// Listar locais por usuário
-router.get('/usuario/:usuario_id', localController.getLocaisPorUsuario);
-
-// Buscar local por id
 router.get('/:id', localController.getLocalById);
 
-// Atualizar status de validação de um local
-router.patch('/:id/status', localController.atualizarStatus);
+// --- Rotas Protegidas (Só logado mexe) ---
+// Importante: '/meus/locais' vem antes de '/:id' para não dar conflito
+router.get('/meus/locais', authMiddleware, localController.getLocaisPorUsuario);
 
-// Atualizar um local (com verificação de propriedade)
-router.put('/:id', localController.atualizarLocal);
-
-// Excluir local por id
-router.delete('/:id', localController.deleteLocal);
+router.post('/', authMiddleware, localController.criarLocal);      // Criar
+router.put('/:id', authMiddleware, localController.atualizarLocal); // Editar
 
 module.exports = router;
