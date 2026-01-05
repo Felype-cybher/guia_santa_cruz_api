@@ -1,86 +1,78 @@
-// src/controllers/authController.js
 const db = require('../config/db');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs'); // ou 'bcrypt', dependendo do que vc instalou
 const jwt = require('jsonwebtoken');
 
-const saltRounds = 10;
+// Registrar Usuário
+exports.registrar = async (req, res) => {
+    const { nome, email, password } = req.body;
 
-exports.register = async (req, res) => {
-  try {
-    const { nome, email, senha } = req.body;
+    try {
+        // 1. Verifica se usuário já existe
+        const userCheck = await db.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+        if (userCheck.rows.length > 0) {
+            return res.status(400).json({ message: "Email já cadastrado." });
+        }
 
-    if (!nome || !email || !senha) {
-      return res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
+        // 2. Criptografa a senha
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // 3. Insere no Banco (Sintaxe POSTGRESQL)
+        const query = `
+            INSERT INTO usuarios (nome, email, senha)
+            VALUES ($1, $2, $3)
+            RETURNING id
+        `;
+
+        const { rows } = await db.query(query, [nome, email, hashedPassword]);
+
+        res.status(201).json({ message: "Usuário criado com sucesso!", userId: rows[0].id });
+
+    } catch (error) {
+        console.error("Erro no registro:", error);
+        res.status(500).json({ message: "Erro interno no servidor." });
     }
-
-    const senha_hash = await bcrypt.hash(senha, saltRounds);
-
-    const result = await db.query(
-      'INSERT INTO usuarios (nome, email, senha_hash) VALUES ($1, $2, $3) RETURNING id',
-      [nome, email, senha_hash]
-    );
-
-    const userId = result.rows[0].id;
-
-    res.status(201).json({ 
-        message: 'Usuário cadastrado com sucesso!', 
-        userId: userId 
-    });
-
-  } catch (error) {
-    console.error('Erro ao cadastrar usuário:', error);
-
-    if (error.code === '23505') { // Código de erro do PostgreSQL para entrada duplicada
-      return res.status(409).json({ message: 'Este email já está cadastrado.' });
-    }
-
-    res.status(500).json({ message: 'Erro interno no servidor.' });
-  }
 };
 
+// Login
 exports.login = async (req, res) => {
-  try {
-    const { email, senha } = req.body;
+    const { email, password } = req.body;
 
-    if (!email || !senha) {
-      return res.status(400).json({ message: 'Email e senha são obrigatórios.' });
+    try {
+        // 1. Busca usuário pelo email
+        const result = await db.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+
+        if (result.rows.length === 0) {
+            return res.status(400).json({ message: "Email ou senha inválidos." });
+        }
+
+        const user = result.rows[0];
+
+        // 2. Compara a senha enviada com a senha do banco
+        const isMatch = await bcrypt.compare(password, user.senha);
+
+        if (!isMatch) {
+            return res.status(400).json({ message: "Email ou senha inválidos." });
+        }
+
+        // 3. Gera o Token
+        const token = jwt.sign(
+            { id: user.id, email: user.email },
+            process.env.JWT_SECRET,
+            { expiresIn: '30d' }
+        );
+
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                nome: user.nome,
+                email: user.email
+            }
+        });
+
+    } catch (error) {
+        console.error("Erro no login:", error);
+        res.status(500).json({ message: "Erro interno no servidor." });
     }
-
-    const result = await db.query(
-      'SELECT * FROM usuarios WHERE email = $1',
-      [email]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(401).json({ message: 'Email ou senha inválidos.' });
-    }
-
-    const usuario = result.rows[0];
-    const senhaCorreta = await bcrypt.compare(senha, usuario.senha_hash);
-
-    if (!senhaCorreta) {
-      return res.status(401).json({ message: 'Email ou senha inválidos.' });
-    }
-
-    const token = jwt.sign(
-      { id: usuario.id, tipo: usuario.tipo },
-      process.env.JWT_SECRET,
-      { expiresIn: '8h' }
-    );
-
-    res.status(200).json({
-      message: 'Login bem-sucedido!',
-      token: token,
-      usuario: {
-        id: usuario.id,
-        nome: usuario.nome,
-        email: usuario.email,
-        tipo: usuario.tipo
-      }
-    });
-
-  } catch (error) {
-    console.error('Erro ao fazer login:', error);
-    res.status(500).json({ message: 'Erro interno no servidor.' });
-  }
 };
