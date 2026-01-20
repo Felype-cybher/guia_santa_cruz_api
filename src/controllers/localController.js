@@ -106,3 +106,16 @@ exports.atualizarLocal = async (req, res) => {
         res.status(500).json({ message: "Erro interno." });
     }
 };
+
+// Deletar um local
+exports.deletarLocal = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const query = `DELETE FROM locais WHERE id = $1`;
+        await db.query(query, [id]);
+        return res.status(200).json({ message: 'Deletado' });
+    } catch (error) {
+        console.error('Erro ao deletar local:', error);
+        return res.status(500).json({ error: 'Erro interno' });
+    }
+};
