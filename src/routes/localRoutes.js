@@ -15,6 +15,7 @@ router.get('/meus/locais', authMiddleware, localController.getLocaisPorUsuario);
 
 router.post('/', authMiddleware, localController.criarLocal);      // Criar
 router.put('/:id', authMiddleware, localController.atualizarLocal); // Editar
+router.patch('/:id/status', authMiddleware, localController.atualizarStatusLocal); // Atualizar status
 router.delete('/:id', authMiddleware, localController.deletarLocal); // Deletar
 
 module.exports = router;

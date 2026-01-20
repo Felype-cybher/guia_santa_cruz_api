@@ -112,6 +112,21 @@ exports.atualizarLocal = async (req, res) => {
     }
 };
 
+// Atualizar status do local (aprovar/rejeitar)
+exports.atualizarStatusLocal = async (req, res) => {
+    const { id } = req.params;
+    const { status_validacao } = req.body;
+    try {
+        const query = `UPDATE locais SET status_validacao = $1 WHERE id = $2`;
+        const { rowCount } = await db.query(query, [status_validacao, id]);
+        if (rowCount === 0) return res.status(404).json({ message: 'Local não encontrado' });
+        return res.status(200).json({ message: 'Status atualizado' });
+    } catch (error) {
+        console.error('Erro ao atualizar status do local:', error);
+        return res.status(500).json({ error: 'Erro interno' });
+    }
+};
+
 // Deletar um local
 exports.deletarLocal = async (req, res) => {
     const { id } = req.params;
