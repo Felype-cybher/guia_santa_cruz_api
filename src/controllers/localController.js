@@ -3,16 +3,14 @@ const db = require('../config/db'); // Ou onde estiver sua conexão
 // Listar todos os locais (Público)
 exports.getAllLocais = async (req, res) => {
     try {
-        // Suporta filtro por status via query param ?status=pendente
+        // Suporta filtro por status via query param ?status=... (case-insensitive)
         const { status } = req.query;
         let query = `SELECT id, nome, descricao, categoria, endereco, cidade, estado, imagem as foto, status_validacao FROM locais`;
         const params = [];
 
         if (status) {
-            query += ` WHERE status_validacao = $1`;
+            query += ` WHERE LOWER(status_validacao) = LOWER($1)`;
             params.push(status);
-        } else {
-            query += ` WHERE status_validacao = 'aprovado'`;
         }
 
         const { rows } = await db.query(query, params);
