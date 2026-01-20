@@ -5,7 +5,8 @@ exports.getAllLocais = async (req, res) => {
     try {
         // Suporta filtro por status via query param ?status=... (case-insensitive)
         const { status } = req.query;
-        let query = `SELECT id, nome, descricao, categoria, endereco, cidade, estado, imagem as foto, status_validacao FROM locais`;
+        // Seleciona todas as colunas para garantir que não falta nenhum campo
+        let query = `SELECT * FROM locais`;
         const params = [];
 
         if (status) {
@@ -13,8 +14,10 @@ exports.getAllLocais = async (req, res) => {
             params.push(status);
         }
 
-        const { rows } = await db.query(query, params);
-        res.json(rows);
+        const result = await db.query(query, params);
+        // Log crítico para debug: mostra a primeira linha que sairá do backend
+        console.log('Dados saindo do Backend:', result.rows[0]);
+        res.json(result.rows);
     } catch (error) {
         console.error("ERRO DETALHADO ao buscar locais:", error);
         res.status(500).json({ error: "Erro ao buscar locais." });
