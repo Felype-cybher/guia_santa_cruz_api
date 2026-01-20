@@ -3,16 +3,19 @@ const db = require('../config/db'); // Ou onde estiver sua conexão
 // Listar todos os locais (Público)
 exports.getAllLocais = async (req, res) => {
     try {
-        // Pega apenas aprovados por padrão
-        const query = `
-            SELECT id, nome, descricao, categoria, endereco, cidade, estado, imagem, status_validacao
-            FROM locais
-            WHERE status_validacao = 'aprovado'
-        `;
+        // Suporta filtro por status via query param ?status=pendente
+        const { status } = req.query;
+        let query = `SELECT id, nome, descricao, categoria, endereco, cidade, estado, imagem as foto, status_validacao FROM locais`;
+        const params = [];
 
-        // Se usar mysql era db.query, se for pg (postgres) é assim:
-        const { rows } = await db.query(query);
+        if (status) {
+            query += ` WHERE status_validacao = $1`;
+            params.push(status);
+        } else {
+            query += ` WHERE status_validacao = 'aprovado'`;
+        }
 
+        const { rows } = await db.query(query, params);
         res.json(rows);
     } catch (error) {
         console.error("ERRO DETALHADO ao buscar locais:", error);
@@ -25,9 +28,8 @@ exports.getLocaisPorUsuario = async (req, res) => {
     const usuario_id = req.user.id; // Vem do token JWT
 
     try {
-        // CORREÇÃO: Trocamos 'foto' por 'imagem'
         const query = `
-            SELECT id, nome, categoria, status_validacao, imagem
+            SELECT id, nome, categoria, status_validacao, imagem as foto
             FROM locais
             WHERE usuario_id = $1
         `;
@@ -44,7 +46,7 @@ exports.getLocaisPorUsuario = async (req, res) => {
 exports.getLocalById = async (req, res) => {
     const { id } = req.params;
     try {
-        const query = "SELECT * FROM locais WHERE id = $1";
+        const query = `SELECT id, nome, descricao, categoria, endereco, cidade, estado, imagem as foto, status_validacao FROM locais WHERE id = $1`;
         const { rows } = await db.query(query, [id]);
 
         if (rows.length === 0) {
@@ -59,7 +61,9 @@ exports.getLocalById = async (req, res) => {
 
 // Criar novo local
 exports.criarLocal = async (req, res) => {
-    const { nome, descricao, categoria, cep, endereco, numero, bairro, cidade, estado, imagem } = req.body;
+    // Aceita tanto 'imagem' quanto 'foto' vindos do frontend
+    const { nome, descricao, categoria, cep, endereco, numero, bairro, cidade, estado } = req.body;
+    const imagem = req.body.imagem || req.body.foto;
     const usuario_id = req.user.id; // Pega do token
 
     try {
@@ -82,7 +86,8 @@ exports.criarLocal = async (req, res) => {
 // Atualizar Local (O que estávamos fazendo antes)
 exports.atualizarLocal = async (req, res) => {
     const { id } = req.params;
-    const { nome, cep, endereco, numero, bairro, cidade, estado, descricao, categoria, imagem } = req.body;
+    const { nome, cep, endereco, numero, bairro, cidade, estado, descricao, categoria } = req.body;
+    const imagem = req.body.imagem || req.body.foto;
     const usuario_id = req.user.id; // Segurança: só o dono edita
 
     try {
